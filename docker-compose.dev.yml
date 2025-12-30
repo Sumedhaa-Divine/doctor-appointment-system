@@ -1,0 +1,276 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: telehealth-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: telehealth_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: telehealth-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile.dev
+    container_name: telehealth-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      AUTH_SERVICE_URL: http://auth-service:3001
+      APPOINTMENT_SERVICE_URL: http://appointment-service:3002
+      CONSULTATION_SERVICE_URL: http://consultation-service:3003
+      PAYMENT_SERVICE_URL: http://payment-service:3004
+      NOTIFICATION_SERVICE_URL: http://notification-service:3005
+      MEDICAL_RECORDS_SERVICE_URL: http://medical-records-service:3006
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./backend/api-gateway:/app
+      - /app/node_modules
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./backend/services/auth
+      dockerfile: Dockerfile.dev
+    container_name: telehealth-auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: telehealth_dev
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      JWT_EXPIRATION: 24h
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./backend/services/auth:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Appointment Service
+  appointment-service:
+    build:
+      context: ./backend/services/appointment
+      dockerfile: Dockerfile.dev
+    container_name: telehealth-appointment-service
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: telehealth_dev
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./backend/services/appointment:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Consultation Service
+  consultation-service:
+    build:
+      context: ./backend/services/consultation
+      dockerfile: Dockerfile.dev
+    container_name: telehealth-consultation-service
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: telehealth_dev
+      AGORA_APP_ID: your-agora-app-id
+      AGORA_APP_CERTIFICATE: your-agora-certificate
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./backend/services/consultation:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./backend/services/payment
+      dockerfile: Dockerfile.dev
+    container_name: telehealth-payment-service
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: telehealth_dev
+      RAZORPAY_KEY_ID: rzp_test_xxx
+      RAZORPAY_KEY_SECRET: xxx
+      PAYTM_MERCHANT_ID: xxx
+      PAYTM_MERCHANT_KEY: xxx
+      CASHFREE_APP_ID: xxx
+      CASHFREE_SECRET_KEY: xxx
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./backend/services/payment:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./backend/services/notification
+      dockerfile: Dockerfile.dev
+    container_name: telehealth-notification-service
+    ports:
+      - "3005:3005"
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: telehealth_dev
+      FCM_SERVER_KEY: xxx
+      MSG91_AUTH_KEY: xxx
+      MSG91_SENDER_ID: TELEHLT
+      AWS_SES_REGION: ap-south-1
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./backend/services/notification:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Medical Records Service
+  medical-records-service:
+    build:
+      context: ./backend/services/medical-records
+      dockerfile: Dockerfile.dev
+    container_name: telehealth-medical-records-service
+    ports:
+      - "3006:3006"
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: telehealth_dev
+      AWS_S3_BUCKET: telehealth-dev-medical-records
+      AWS_REGION: ap-south-1
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./backend/services/medical-records:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # pgAdmin (Database UI)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: telehealth-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@telehealth.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # Redis Commander (Redis UI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: telehealth-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  default:
+    name: telehealth-network
+    driver: bridge
