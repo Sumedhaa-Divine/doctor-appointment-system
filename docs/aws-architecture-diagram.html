@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hospital Management System – AWS Architecture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      padding: 32px 24px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.875rem;
+      margin-bottom: 40px;
+    }
+
+    /* ── LAYERS ── */
+    .diagram {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .layer {
+      border-radius: 14px;
+      border: 1.5px solid;
+      padding: 18px 20px 20px;
+      position: relative;
+    }
+
+    .layer-label {
+      position: absolute;
+      top: -11px;
+      left: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    /* ── SERVICE CARDS ── */
+    .svc {
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-width: 130px;
+      flex: 1 1 130px;
+      max-width: 180px;
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: transform 0.15s, box-shadow 0.15s;
+      cursor: default;
+    }
+
+    .svc:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .svc-icon {
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+
+    .svc-name {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .svc-desc {
+      font-size: 0.68rem;
+      text-align: center;
+      opacity: 0.65;
+      line-height: 1.4;
+    }
+
+    /* ── ARROWS ── */
+    .arrow {
+      text-align: center;
+      font-size: 1.4rem;
+      color: #475569;
+      line-height: 1;
+    }
+
+    /* ── COLOUR THEMES PER LAYER ── */
+
+    /* Client */
+    .layer-client { border-color: #3b82f6; background: rgba(59,130,246,0.06); }
+    .layer-client .layer-label { background: #3b82f6; color: #fff; }
+    .layer-client .svc { background: rgba(59,130,246,0.12); }
+
+    /* CDN / Edge */
+    .layer-edge { border-color: #8b5cf6; background: rgba(139,92,246,0.06); }
+    .layer-edge .layer-label { background: #8b5cf6; color: #fff; }
+    .layer-edge .svc { background: rgba(139,92,246,0.12); }
+
+    /* Auth */
+    .layer-auth { border-color: #f59e0b; background: rgba(245,158,11,0.06); }
+    .layer-auth .layer-label { background: #f59e0b; color: #000; }
+    .layer-auth .svc { background: rgba(245,158,11,0.10); }
+
+    /* API */
+    .layer-api { border-color: #06b6d4; background: rgba(6,182,212,0.06); }
+    .layer-api .layer-label { background: #06b6d4; color: #000; }
+    .layer-api .svc { background: rgba(6,182,212,0.10); }
+
+    /* Compute */
+    .layer-compute { border-color: #10b981; background: rgba(16,185,129,0.06); }
+    .layer-compute .layer-label { background: #10b981; color: #000; }
+    .layer-compute .svc { background: rgba(16,185,129,0.10); }
+
+    /* Data */
+    .layer-data { border-color: #f97316; background: rgba(249,115,22,0.06); }
+    .layer-data .layer-label { background: #f97316; color: #fff; }
+    .layer-data .svc { background: rgba(249,115,22,0.10); }
+
+    /* Messaging */
+    .layer-messaging { border-color: #ec4899; background: rgba(236,72,153,0.06); }
+    .layer-messaging .layer-label { background: #ec4899; color: #fff; }
+    .layer-messaging .svc { background: rgba(236,72,153,0.10); }
+
+    /* Security */
+    .layer-security { border-color: #ef4444; background: rgba(239,68,68,0.06); }
+    .layer-security .layer-label { background: #ef4444; color: #fff; }
+    .layer-security .svc { background: rgba(239,68,68,0.10); }
+
+    /* Monitoring */
+    .layer-monitoring { border-color: #64748b; background: rgba(100,116,139,0.06); }
+    .layer-monitoring .layer-label { background: #64748b; color: #fff; }
+    .layer-monitoring .svc { background: rgba(100,116,139,0.10); }
+
+    /* ── LEGEND ── */
+    .legend {
+      max-width: 1100px;
+      margin: 32px auto 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      color: #94a3b8;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* ── FLOW CONNECTOR ── */
+    .connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #475569;
+      font-size: 0.72rem;
+      padding: 4px 0;
+    }
+
+    .connector-line {
+      height: 2px;
+      width: 40px;
+      background: linear-gradient(90deg, transparent, #475569, transparent);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Hospital Management System</h1>
+  <p class="subtitle">AWS Cloud Architecture — Doctor Search · Appointments · Video Consultation</p>
+
+  <div class="diagram">
+
+    <!-- CLIENT LAYER -->
+    <div class="layer layer-client">
+      <span class="layer-label">Client Layer</span>
+      <div class="row">
+        <div class="svc">
+          <div class="svc-icon">🌐</div>
+          <div class="svc-name">Web Browser</div>
+          <div class="svc-desc">Next.js 14 App (React)</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">📱</div>
+          <div class="svc-name">Mobile App</div>
+          <div class="svc-desc">React Native / PWA</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🩺</div>
+          <div class="svc-name">Doctor Portal</div>
+          <div class="svc-desc">Next.js Dashboard</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🏥</div>
+          <div class="svc-name">Admin Panel</div>
+          <div class="svc-desc">Hospital Admin UI</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <!-- EDGE / CDN LAYER -->
+    <div class="layer layer-edge">
+      <span class="layer-label">Edge / CDN Layer</span>
+      <div class="row">
+        <div class="svc">
+          <div class="svc-icon">⚡</div>
+          <div class="svc-name">AWS CloudFront</div>
+          <div class="svc-desc">Global CDN, SSL termination, DDoS edge</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🚀</div>
+          <div class="svc-name">AWS Amplify</div>
+          <div class="svc-desc">Next.js SSR hosting, CI/CD pipeline</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🛡️</div>
+          <div class="svc-name">AWS WAF</div>
+          <div class="svc-desc">Web Application Firewall, rate limiting</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">📦</div>
+          <div class="svc-name">Amazon S3</div>
+          <div class="svc-desc">Static assets, medical documents</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <!-- AUTH LAYER -->
+    <div class="layer layer-auth">
+      <span class="layer-label">Authentication &amp; Authorization</span>
+      <div class="row">
+        <div class="svc">
+          <div class="svc-icon">🔐</div>
+          <div class="svc-name">AWS Cognito</div>
+          <div class="svc-desc">User Pools — Patient / Doctor / Admin roles</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🎫</div>
+          <div class="svc-name">JWT / OAuth 2.0</div>
+          <div class="svc-desc">Token-based auth, social login (Google)</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🔑</div>
+          <div class="svc-name">AWS IAM</div>
+          <div class="svc-desc">Service-to-service permissions &amp; roles</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🔒</div>
+          <div class="svc-name">AWS KMS</div>
+          <div class="svc-desc">Encryption keys for medical records</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <!-- API LAYER -->
+    <div class="layer layer-api">
+      <span class="layer-label">API Gateway Layer</span>
+      <div class="row">
+        <div class="svc">
+          <div class="svc-icon">🔀</div>
+          <div class="svc-name">API Gateway (REST)</div>
+          <div class="svc-desc">Route: /doctors /appointments /records</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🔌</div>
+          <div class="svc-name">API Gateway (WS)</div>
+          <div class="svc-desc">Real-time notifications &amp; chat</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">📹</div>
+          <div class="svc-name">Amazon Chime SDK</div>
+          <div class="svc-desc">HIPAA-eligible video consultation</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🗺️</div>
+          <div class="svc-name">AWS AppSync</div>
+          <div class="svc-desc">GraphQL for real-time availability</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <!-- COMPUTE LAYER -->
+    <div class="layer layer-compute">
+      <span class="layer-label">Compute / Business Logic Layer</span>
+      <div class="row">
+        <div class="svc">
+          <div class="svc-icon">λ</div>
+          <div class="svc-name">AWS Lambda</div>
+          <div class="svc-desc">Doctor search, booking, auth handlers</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🐳</div>
+          <div class="svc-name">ECS Fargate</div>
+          <div class="svc-desc">Node.js API server (long-running tasks)</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">📅</div>
+          <div class="svc-name">Lambda Scheduler</div>
+          <div class="svc-desc">Appointment reminders via EventBridge</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🔍</div>
+          <div class="svc-name">OpenSearch</div>
+          <div class="svc-desc">Doctor search by specialty, location</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <!-- DATA LAYER -->
+    <div class="layer layer-data">
+      <span class="layer-label">Data Layer</span>
+      <div class="row">
+        <div class="svc">
+          <div class="svc-icon">🐘</div>
+          <div class="svc-name">Amazon RDS</div>
+          <div class="svc-desc">PostgreSQL — patients, doctors, appointments</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">⚡</div>
+          <div class="svc-name">ElastiCache</div>
+          <div class="svc-desc">Redis — session cache, slot availability</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">📁</div>
+          <div class="svc-name">S3 (Medical)</div>
+          <div class="svc-desc">Prescriptions, lab reports, DICOM images</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🗄️</div>
+          <div class="svc-name">DynamoDB</div>
+          <div class="svc-desc">Chat history, audit logs, notifications</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <!-- MESSAGING LAYER -->
+    <div class="layer layer-messaging">
+      <span class="layer-label">Messaging &amp; Notifications</span>
+      <div class="row">
+        <div class="svc">
+          <div class="svc-icon">📧</div>
+          <div class="svc-name">Amazon SES</div>
+          <div class="svc-desc">Email — appointment confirmations</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">📲</div>
+          <div class="svc-name">Amazon SNS</div>
+          <div class="svc-desc">SMS &amp; push notifications</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">📬</div>
+          <div class="svc-name">Amazon SQS</div>
+          <div class="svc-desc">Async job queues, background processing</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">⏰</div>
+          <div class="svc-name">EventBridge</div>
+          <div class="svc-desc">Scheduled events, appointment reminders</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <!-- SECURITY LAYER -->
+    <div class="layer layer-security">
+      <span class="layer-label">Security &amp; Compliance (HIPAA)</span>
+      <div class="row">
+        <div class="svc">
+          <div class="svc-icon">🛡️</div>
+          <div class="svc-name">AWS Shield</div>
+          <div class="svc-desc">DDoS protection (Standard)</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🔐</div>
+          <div class="svc-name">Secrets Manager</div>
+          <div class="svc-desc">DB credentials, API keys rotation</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">📋</div>
+          <div class="svc-name">AWS Config</div>
+          <div class="svc-desc">Compliance rules, audit trail</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🔎</div>
+          <div class="svc-name">GuardDuty</div>
+          <div class="svc-desc">Threat detection &amp; anomaly alerts</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <!-- MONITORING LAYER -->
+    <div class="layer layer-monitoring">
+      <span class="layer-label">Observability &amp; Monitoring</span>
+      <div class="row">
+        <div class="svc">
+          <div class="svc-icon">📊</div>
+          <div class="svc-name">CloudWatch</div>
+          <div class="svc-desc">Logs, metrics, alarms, dashboards</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🔭</div>
+          <div class="svc-name">AWS X-Ray</div>
+          <div class="svc-desc">Distributed tracing across services</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">🚨</div>
+          <div class="svc-name">SNS Alerts</div>
+          <div class="svc-desc">On-call alerts for critical failures</div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon">💰</div>
+          <div class="svc-name">Cost Explorer</div>
+          <div class="svc-desc">AWS billing &amp; cost optimization</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span> Client Layer</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span> Edge / CDN</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span> Auth &amp; IAM</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#06b6d4"></span> API Gateway</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#10b981"></span> Compute</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#f97316"></span> Data</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#ec4899"></span> Messaging</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Security</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#64748b"></span> Monitoring</div>
+  </div>
+
+  <p style="text-align:center; margin-top:28px; font-size:0.7rem; color:#475569;">
+    Hospital Management System · AWS Architecture · HIPAA-Eligible Services
+  </p>
+
+</body>
+</html>
