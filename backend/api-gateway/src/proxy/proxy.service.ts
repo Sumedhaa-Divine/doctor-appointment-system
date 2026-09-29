@@ -24,6 +24,7 @@ export class ProxyService {
       { name: 'payment', url: process.env.PAYMENT_SERVICE_URL || 'http://localhost:3004' },
       { name: 'notification', url: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3005' },
       { name: 'medical-records', url: process.env.MEDICAL_RECORDS_SERVICE_URL || 'http://localhost:3006' },
+      { name: 'dialysis', url: process.env.DIALYSIS_SERVICE_URL || 'http://localhost:3007' },
     ];
 
     services.forEach((service) => {

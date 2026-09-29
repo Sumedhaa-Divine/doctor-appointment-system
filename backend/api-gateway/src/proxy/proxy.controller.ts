@@ -38,6 +38,11 @@ export class ProxyController {
     return this.proxy('medical-records', req, res);
   }
 
+  @All('dialysis/*')
+  async proxyDialysis(@Req() req: Request, @Res() res: Response) {
+    return this.proxy('dialysis', req, res);
+  }
+
   private async proxy(serviceName: string, req: Request, res: Response) {
     try {
       const path = req.url.replace(`/${serviceName}`, '');

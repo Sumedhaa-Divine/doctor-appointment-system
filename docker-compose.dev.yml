@@ -53,6 +53,7 @@ services:
       PAYMENT_SERVICE_URL: http://payment-service:3004
       NOTIFICATION_SERVICE_URL: http://notification-service:3005
       MEDICAL_RECORDS_SERVICE_URL: http://medical-records-service:3006
+      DIALYSIS_SERVICE_URL: http://dialysis-service:3007
       REDIS_HOST: redis
       REDIS_PORT: 6379
     volumes:
@@ -228,6 +229,32 @@ services:
       REDIS_PORT: 6379
     volumes:
       - ./backend/services/medical-records:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Dialysis Service
+  dialysis-service:
+    build:
+      context: ./backend/services/dialysis
+      dockerfile: Dockerfile.dev
+    container_name: telehealth-dialysis-service
+    ports:
+      - "3007:3007"
+    environment:
+      NODE_ENV: development
+      PORT: 3007
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: telehealth_dev
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./backend/services/dialysis:/app
       - /app/node_modules
     depends_on:
       - postgres

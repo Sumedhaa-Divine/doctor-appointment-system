@@ -1,0 +1,74 @@
+export enum PatientCategory {
+  CHRONIC = 'CHRONIC',
+  ACUTE = 'ACUTE',
+  TRANSIENT = 'TRANSIENT',
+}
+
+export enum PatientType {
+  INPATIENT = 'INPATIENT',
+  CHRONIC_OP = 'CHRONIC_OP',
+  WALK_IN = 'WALK_IN',
+}
+
+export enum IsolationClass {
+  NONE = 'NONE',
+  HBV = 'HBV',
+  HCV = 'HCV',
+  HIV = 'HIV',
+  UNKNOWN = 'UNKNOWN',
+}
+
+export enum Modality {
+  HD = 'HD',
+  HDF = 'HDF',
+  SLED = 'SLED',
+  CRRT_CVVH = 'CRRT_CVVH',
+  CRRT_CVVHD = 'CRRT_CVVHD',
+  CRRT_CVVHDF = 'CRRT_CVVHDF',
+  PD_CAPD = 'PD_CAPD',
+  PD_APD = 'PD_APD',
+}
+
+export enum PrescriptionStatus {
+  DRAFT = 'DRAFT',
+  ACTIVE = 'ACTIVE',
+  SUPERSEDED = 'SUPERSEDED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum SessionStatus {
+  SCHEDULED = 'SCHEDULED',
+  CHECKED_IN = 'CHECKED_IN',
+  PRE_ASSESSMENT = 'PRE_ASSESSMENT',
+  DEFERRED = 'DEFERRED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  POST_ASSESSMENT = 'POST_ASSESSMENT',
+  COMPLETED = 'COMPLETED',
+  VERIFIED = 'VERIFIED',
+  ABORTED = 'ABORTED',
+  CANCELLED = 'CANCELLED',
+  NO_SHOW = 'NO_SHOW',
+}
+
+export enum PayerRoute {
+  IPD = 'IPD',
+  SELF_PAY = 'SELF_PAY',
+  PACKAGE = 'PACKAGE',
+  TPA_INSURANCE = 'TPA_INSURANCE',
+  GOVT_SCHEME = 'GOVT_SCHEME',
+  CORPORATE = 'CORPORATE',
+}
+
+export enum MachineStatus {
+  AVAILABLE = 'AVAILABLE',
+  IN_USE = 'IN_USE',
+  DISINFECTING = 'DISINFECTING',
+  UNDER_MAINTENANCE = 'UNDER_MAINTENANCE',
+  OUT_OF_SERVICE = 'OUT_OF_SERVICE',
+}
+
+export enum ChargeStatus {
+  PENDING = 'PENDING',
+  POSTED = 'POSTED',
+  REVERSED = 'REVERSED',
+}
