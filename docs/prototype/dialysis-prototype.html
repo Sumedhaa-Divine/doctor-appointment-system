@@ -1,0 +1,685 @@
+<title>Dialysis Module Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: clinical app shell. Dark navigation rail + scrolling work area; rail becomes a top bar on phones. */
+:root {
+  --bg: #F3F5F7; --surface: #FFFFFF; --surface-2: #F7F9FB; --line: #DCE2E8; --line-strong: #B5C1CC;
+  --fg: #15202B; --muted: #4A5562; --accent: #0B5D86; --accent-fg: #FFFFFF; --accent-soft: #E5F0F6;
+  --nav-bg: #0F1E2C; --nav-fg: #D6E1EB; --nav-muted: #9AAFC3; --nav-active: #1F3A52; --nav-line: #24384B;
+  --info-bg: #DBEAFE; --info-fg: #1E3A8A; --warn-bg: #FEF3C7; --warn-fg: #78350F;
+  --alert-bg: #FFEDD5; --alert-fg: #7C2D12; --alert-line: #EA580C; --alert-soft: #FFF7ED;
+  --ok-bg: #DCFCE7; --ok-fg: #14532D; --ok-line: #BBE5C8; --ok-soft: #F3FBF5;
+  --iso-bg: #F3E8FF; --iso-fg: #6B21A8; --clean-bg: #EDE9FE; --clean-fg: #4C1D95;
+  --neutral-bg: #EEF2F6; --neutral-fg: #334155; --danger-bg: #FDE2E2; --danger-fg: #7F1D1D;
+  --off-bg: #CBD5E1; --off-fg: #475569; --bar-track: #E5EAF0; --bar: #2563EB;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0D151D; --surface: #15202B; --surface-2: #1A2734; --line: #283848; --line-strong: #3B4F63;
+  --fg: #E4ECF3; --muted: #9DAFC0; --accent: #4FA6D6; --accent-fg: #06121B; --accent-soft: #14324A;
+  --nav-bg: #09111A; --nav-fg: #C8D5E1; --nav-muted: #8197AC; --nav-active: #1C3349; --nav-line: #1C2B3A;
+  --info-bg: #1B2F55; --info-fg: #C3D8FF; --warn-bg: #3B2D0C; --warn-fg: #F6D88E;
+  --alert-bg: #44200C; --alert-fg: #FFCCA8; --alert-line: #F08A4B; --alert-soft: #2E1A0E;
+  --ok-bg: #12361F; --ok-fg: #A9E9BE; --ok-line: #23593A; --ok-soft: #10261A;
+  --iso-bg: #33194D; --iso-fg: #E3C8FF; --clean-bg: #2A2150; --clean-fg: #D3C9FF;
+  --neutral-bg: #223140; --neutral-fg: #C6D2DD; --danger-bg: #4A1717; --danger-fg: #FFC4C4;
+  --off-bg: #2A3846; --off-fg: #8EA1B3; --bar-track: #263646; --bar: #6EA2FF;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0D151D; --surface: #15202B; --surface-2: #1A2734; --line: #283848; --line-strong: #3B4F63;
+  --fg: #E4ECF3; --muted: #9DAFC0; --accent: #4FA6D6; --accent-fg: #06121B; --accent-soft: #14324A;
+  --nav-bg: #09111A; --nav-fg: #C8D5E1; --nav-muted: #8197AC; --nav-active: #1C3349; --nav-line: #1C2B3A;
+  --info-bg: #1B2F55; --info-fg: #C3D8FF; --warn-bg: #3B2D0C; --warn-fg: #F6D88E;
+  --alert-bg: #44200C; --alert-fg: #FFCCA8; --alert-line: #F08A4B; --alert-soft: #2E1A0E;
+  --ok-bg: #12361F; --ok-fg: #A9E9BE; --ok-line: #23593A; --ok-soft: #10261A;
+  --iso-bg: #33194D; --iso-fg: #E3C8FF; --clean-bg: #2A2150; --clean-fg: #D3C9FF;
+  --neutral-bg: #223140; --neutral-fg: #C6D2DD; --danger-bg: #4A1717; --danger-fg: #FFC4C4;
+  --off-bg: #2A3846; --off-fg: #8EA1B3; --bar-track: #263646; --bar: #6EA2FF;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.45; }
+* { box-sizing: border-box; }
+button, input { font: inherit; color: inherit; }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 { font-size: 1.75rem; font-weight: 700; }
+h2 { font-size: 1.1rem; font-weight: 600; }
+p { margin: 0; }
+.num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.app { min-height: 100%; display: flex; flex-wrap: wrap; }
+.nav { flex: 1 1 220px; max-width: 260px; background: var(--nav-bg); color: var(--nav-fg); padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; }
+.brand { display: flex; flex-direction: column; padding: 0 12px 20px; }
+.brand small { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--nav-muted); }
+.brand strong { font-size: 1.25rem; color: #FFFFFF; }
+.nav a { display: block; padding: 12px; border-radius: 8px; text-decoration: none; color: var(--nav-fg); min-height: 44px; }
+.nav a:hover { background: var(--nav-active); }
+.nav a[aria-current="page"] { background: var(--nav-active); color: #FFFFFF; font-weight: 600; }
+.nav-foot { margin-top: auto; padding: 16px 12px 0; border-top: 1px solid var(--nav-line); font-size: 0.85rem; color: var(--nav-muted); display: flex; flex-direction: column; gap: 10px; }
+.nav-foot button { min-height: 44px; border-radius: 8px; border: 1px solid var(--nav-line); background: transparent; color: var(--nav-fg); cursor: pointer; }
+.nav-foot button:hover { background: var(--nav-active); }
+
+.main { flex: 999 1 560px; min-width: 0; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 18px; }
+.eyebrow { font-size: 0.85rem; color: var(--muted); }
+.head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 14px; }
+.head-text { display: flex; flex-direction: column; gap: 4px; }
+.row { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.grow { flex: 999 1 540px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.side { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+.hint { font-size: 0.85rem; color: var(--muted); }
+.stack { display: flex; flex-direction: column; gap: 8px; }
+.wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.btn { min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid transparent; background: var(--accent); color: var(--accent-fg); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.btn:hover { filter: brightness(1.08); }
+.btn-lg { min-height: 48px; padding: 0 22px; font-size: 1rem; }
+.btn-ghost { background: var(--surface); color: var(--fg); border-color: var(--line-strong); font-weight: 500; }
+.btn[disabled] { background: var(--off-bg); color: var(--off-fg); cursor: not-allowed; filter: none; }
+.pill { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); cursor: pointer; font-weight: 500; }
+.pill[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.tab { min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer; font-weight: 500; }
+.tab[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--fg); font-weight: 600; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+
+.chip { display: inline-block; font-size: 0.78rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; background: var(--neutral-bg); color: var(--neutral-fg); }
+.c-info { background: var(--info-bg); color: var(--info-fg); }
+.c-warn { background: var(--warn-bg); color: var(--warn-fg); }
+.c-alert { background: var(--alert-bg); color: var(--alert-fg); }
+.c-ok { background: var(--ok-bg); color: var(--ok-fg); }
+.c-iso { background: var(--iso-bg); color: var(--iso-fg); }
+.c-clean { background: var(--clean-bg); color: var(--clean-fg); }
+.c-danger { background: var(--danger-bg); color: var(--danger-fg); }
+.c-accent { background: var(--accent); color: var(--accent-fg); }
+.c-unknown { background: var(--surface); color: var(--neutral-fg); border: 1px dashed var(--muted); }
+
+.notice { padding: 12px 14px; border-radius: 8px; font-size: 0.92rem; }
+.n-alert { background: var(--alert-bg); color: var(--alert-fg); border: 1px solid var(--alert-line); font-weight: 600; }
+.n-ok { background: var(--ok-bg); color: var(--ok-fg); font-weight: 600; }
+.n-neutral { background: var(--neutral-bg); color: var(--neutral-fg); }
+.n-water { background: var(--warn-bg); color: var(--warn-fg); border: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 14px; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.tile.bad { border: 2px solid var(--alert-line); }
+.tile .label { font-size: 0.85rem; color: var(--muted); }
+.tile .value { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 1.7rem; font-weight: 600; }
+
+/* Unit board */
+.stations { flex: 999 1 520px; min-width: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.card { text-align: left; cursor: pointer; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 150px; }
+.card:hover { border-color: var(--line-strong); }
+.card.sel { border: 2px solid var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.card.alert { border: 2px solid var(--alert-line); }
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.code { font-family: var(--mono); font-weight: 600; font-size: 1rem; }
+.who { display: flex; flex-direction: column; gap: 2px; }
+.who strong { font-size: 0.98rem; }
+.who span, .card .note { font-size: 0.85rem; color: var(--muted); }
+.bar { height: 6px; border-radius: 3px; background: var(--bar-track); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--bar); }
+.bar.alert i { background: var(--alert-line); }
+.metrics { display: flex; justify-content: space-between; gap: 6px; font-family: var(--mono); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.alert-text { font-size: 0.85rem; font-weight: 600; color: var(--alert-fg); }
+dl.kv { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 0.92rem; }
+dl.kv dt { color: var(--muted); }
+dl.kv dd { margin: 0; }
+dl.facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px 18px; font-size: 0.92rem; }
+dl.facts dt { color: var(--muted); }
+dl.facts dd { margin: 0; font-weight: 600; }
+
+/* Treatment */
+.patient { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: flex; flex-wrap: wrap; gap: 16px 32px; }
+.patient .id { flex: 1 1 260px; display: flex; flex-direction: column; gap: 6px; }
+.patient dl { flex: 2 1 420px; }
+.check { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.check.fail { border-color: var(--alert-line); background: var(--alert-soft); }
+.badge { flex: 0 0 86px; text-align: center; padding: 6px 0; border-radius: 6px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; }
+.check-body { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.check-body strong small { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+.check-body span { font-size: 0.9rem; color: var(--muted); }
+.table-box { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+th { text-align: left; font-weight: 500; color: var(--muted); padding: 8px 6px; border-bottom: 1px solid var(--line); }
+td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td.num, td.mono { font-size: 0.88rem; }
+.low { color: var(--alert-fg); font-weight: 700; }
+form.inline { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--muted); }
+label.field input { width: 120px; min-height: 44px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); font-size: 1rem; }
+.search { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface-2); }
+.qty { display: flex; align-items: center; gap: 6px; }
+.qty button { width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); cursor: pointer; font-size: 1.1rem; }
+.qty span { min-width: 24px; text-align: center; font-family: var(--mono); }
+.status-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.status-strip .chip { font-size: 0.82rem; padding: 5px 11px; }
+.event { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); font-size: 0.92rem; }
+
+/* Walk-in */
+.found { display: flex; flex-wrap: wrap; gap: 8px 22px; padding: 12px; border-radius: 8px; background: var(--accent-soft); font-size: 0.92rem; }
+.chair { width: 100%; text-align: left; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px 14px; min-height: 56px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
+.chair[aria-pressed="true"] { border: 2px solid var(--accent); background: var(--accent-soft); }
+.chair[disabled] { border: 1px dashed var(--line-strong); background: var(--surface-2); opacity: 0.75; cursor: not-allowed; }
+.chair .code { min-width: 64px; }
+.chair-body { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.chair-body span { font-size: 0.85rem; color: var(--muted); }
+.mark { flex: 0 0 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; }
+.summary li { display: flex; gap: 10px; align-items: flex-start; font-size: 0.92rem; }
+fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+legend { font-weight: 600; font-size: 0.92rem; padding: 0; margin-bottom: 8px; }
+
+/* Schedule */
+.legend { display: flex; flex-wrap: wrap; gap: 8px; }
+table.grid { border-collapse: separate; border-spacing: 6px; min-width: 780px; font-size: 0.82rem; }
+table.grid th, table.grid td { border: 0; }
+table.grid td { border-radius: 8px; padding: 8px; vertical-align: top; min-width: 150px; }
+table.grid td strong { display: block; font-size: 0.86rem; }
+table.grid td span { color: var(--muted); }
+.k-done { background: var(--ok-bg); } .k-done strong, .k-done span { color: var(--ok-fg); }
+.k-live { background: var(--info-bg); } .k-live strong, .k-live span { color: var(--info-fg); }
+.k-sched { background: var(--surface); outline: 1px solid var(--line-strong); }
+.k-noshow { background: var(--alert-bg); } .k-noshow strong, .k-noshow span { color: var(--alert-fg); }
+.k-free { background: var(--surface-2); outline: 1px dashed var(--line); } .k-free strong { color: var(--muted); font-weight: 500; }
+.k-new { background: var(--accent-soft); outline: 2px solid var(--accent); }
+.order { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); }
+.order.done { border-color: var(--ok-line); background: var(--ok-soft); }
+.ok-text { font-size: 0.86rem; font-weight: 600; color: var(--ok-fg); }
+
+/* Reconciliation */
+.issue { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px; border-radius: 8px; border: 1px solid var(--alert-line); background: var(--alert-soft); }
+.issue.done { border-color: var(--ok-line); background: var(--ok-soft); }
+.issue-body { flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.issue-body span { font-size: 0.9rem; color: var(--muted); }
+.line-item { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 0.92rem; }
+
+@media (max-width: 720px) {
+  .nav { max-width: none; flex-basis: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 12px 16px; gap: 4px; }
+  .brand { padding: 0 12px 0 0; }
+  .nav a { padding: 10px; }
+  .nav-foot { display: none; }
+  .main { padding: 20px 16px 40px; }
+  h1 { font-size: 1.45rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+
+<div class="app">
+  <nav class="nav" aria-label="Dialysis module">
+    <div class="brand"><small>HMS</small><strong>Dialysis</strong></div>
+    <a href="#board" data-nav="board">Unit board</a>
+    <a href="#schedule" data-nav="schedule">Schedule &amp; orders</a>
+    <a href="#walkin" data-nav="walkin">Walk-in triage</a>
+    <a href="#treatment" data-nav="treatment">Treatment chart</a>
+    <a href="#reconciliation" data-nav="reconciliation">Billing &amp; supplies</a>
+    <div class="nav-foot">
+      <span>Clickable prototype · all patients and figures are sample data</span>
+      <button type="button" data-act="reset">Reset demo</button>
+    </div>
+  </nav>
+  <main class="main" id="view" tabindex="-1"></main>
+</div>
+
+<script>
+(function () {
+  const view = document.getElementById('view');
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const now = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  const chip = (cls, text) => `<span class="chip ${cls}">${esc(text)}</span>`;
+  const pressed = (b) => (b ? 'true' : 'false');
+
+  const KIT = () => [
+    { id: 'dz', name: 'Dialyzer, reused DZ-0042817-02', batch: 'Reuse 6 of 8', qty: 1, type: 'PACKAGE_INCLUDED' },
+    { id: 'bl', name: 'AV blood tubing set', batch: 'BL2407 · 03/2028', qty: 1, type: 'PACKAGE_INCLUDED' },
+    { id: 'nd', name: 'AV fistula needle 16G', batch: 'FN1188 · 11/2027', qty: 2, type: 'PACKAGE_INCLUDED' },
+    { id: 'ns', name: 'Normal saline 0.9% 1000 ml', batch: 'NS6621 · 06/2027', qty: 1, type: 'PACKAGE_INCLUDED' },
+    { id: 'hp', name: 'Heparin 5000 IU/ml vial', batch: 'HP0912 · 01/2027', qty: 1, type: 'PACKAGE_INCLUDED' },
+    { id: 'bc', name: 'Bicarbonate cartridge', batch: 'BC3310 · 09/2027', qty: 1, type: 'NON_BILLABLE (costing)' },
+    { id: 'gl', name: 'Gloves, dressing pack', batch: 'Unit stock', qty: 1, type: 'DEPARTMENTAL' }
+  ];
+  const initial = () => ({
+    board: { filter: 'ALL', selected: 'CH-03' },
+    trt: { tab: 'checks', reuseFixed: false, overrideRequested: false, started: false, startedAt: '', completed: false,
+      readings: [], form: { sbp: '', dbp: '', hr: '', uf: '' }, events: [], supplies: KIT(), scan: null, post: { weight: '', bp: '' } },
+    walk: { priority: 'ROUTINE', serology: 'KNOWN', chair: 'CH-06', payer: 'SELF', cleared: false, sent: false },
+    sched: { booked: {}, makeup: false },
+    recon: { fixed: {}, approved: false }
+  });
+  let S = initial();
+
+  /* ---------------- 1. Unit board ---------------- */
+  const STATUS = {
+    IN_PROGRESS: ['In treatment', 'c-info'], READY: ['Ready to start', 'c-warn'], PRE_ASSESSMENT: ['Pre-assessment', 'c-warn'],
+    AVAILABLE: ['Available', ''], CLEANING: ['Disinfecting', 'c-clean'], COMPLETED: ['Completed', 'c-ok']
+  };
+  const STATIONS = [
+    { code: 'CH-01', iso: 'NONE', status: 'IN_PROGRESS', patient: 'Anil Mehta', type: 'Outpatient · HD 4h', payer: 'Prepaid package (7 of 12 left)', machine: 'FMC-4008S #07', nurse: 'Sr. Priya Menon', elapsed: '2h 10m', pct: 54, uf: '1.6 / 2.8 L', bp: '128/76', note: 'Next reading due 12:30' },
+    { code: 'CH-02', iso: 'NONE', status: 'IN_PROGRESS', patient: 'Fatima Begum', type: 'Outpatient · HD 4h', payer: 'PM-JAY (pre-auth 9 of 13 used)', machine: 'FMC-4008S #02', nurse: 'Sr. Priya Menon', elapsed: '3h 05m', pct: 77, uf: '2.1 / 2.6 L', bp: '132/80', note: 'Ends 13:15' },
+    { code: 'CH-03', iso: 'NONE', status: 'IN_PROGRESS', patient: 'Suresh Iyer', type: 'Inpatient · Ward 5B · HD 4h', payer: 'Admission bill (IP-24811)', machine: 'Nipro Surdial #04', nurse: 'Br. Joseph D.', elapsed: '1h 40m', pct: 42, uf: '1.4 / 3.0 L', bp: '88/54', note: 'UF paused by nurse at 11:38', alert: 'SBP 88, below 90. Nephrologist notified 11:40' },
+    { code: 'CH-04', iso: 'NONE', status: 'READY', patient: 'Kavya Nair', type: 'Walk-in · HD 4h', payer: 'Self-pay', machine: 'FMC-4008S #05', nurse: 'Br. Joseph D.', elapsed: '—', pct: 0, uf: '— / 2.4 L', bp: '146/88', note: 'Safety checks 9 of 10 passed', alert: 'Deposit pending (soft check)' },
+    { code: 'CH-05', iso: 'NONE', status: 'PRE_ASSESSMENT', patient: 'Lakshmi Ramesh', type: 'Outpatient · HD 4h', payer: 'PM-JAY (pre-auth 4 of 13 used)', machine: 'FMC-4008S #01', nurse: 'Sr. Priya Menon', elapsed: '—', pct: 0, uf: '— / 2.8 L', bp: '150/90', note: 'Arrived 10:05 · weight 61.8 kg' },
+    { code: 'CH-06', iso: 'NONE', status: 'AVAILABLE', patient: '', type: '', payer: '—', machine: 'FMC-4008S #06', nurse: '—', elapsed: '—', pct: 0, uf: '—', bp: '—', note: 'Free until 14:00' },
+    { code: 'CH-07', iso: 'NONE', status: 'CLEANING', patient: '', type: '', payer: '—', machine: 'FMC-4008S #03', nurse: '—', elapsed: '—', pct: 0, uf: '—', bp: '—', note: 'Heat disinfection · 12 min left' },
+    { code: 'CH-08', iso: 'NONE', status: 'IN_PROGRESS', patient: 'Mohammed Ali', type: 'Outpatient · HD 4h', payer: 'PMNDP (free)', machine: 'Nipro Surdial #08', nurse: 'Br. Joseph D.', elapsed: '0h 35m', pct: 15, uf: '0.3 / 2.2 L', bp: '140/86', note: 'Reused dialyzer · use 4 of 8' },
+    { code: 'CH-09', iso: 'HBV', status: 'IN_PROGRESS', patient: 'Rajesh Kumar', type: 'Outpatient · HD 4h', payer: 'TPA (Star Health)', machine: 'FMC-4008S #09 (HBV)', nurse: 'Sr. Anitha S.', elapsed: '2h 50m', pct: 71, uf: '1.9 / 2.5 L', bp: '124/78', note: 'New dialyzer (no reuse for HBV)' },
+    { code: 'CH-10', iso: 'HBV', status: 'AVAILABLE', patient: '', type: '', payer: '—', machine: 'FMC-4008S #10 (HBV)', nurse: '—', elapsed: '—', pct: 0, uf: '—', bp: '—', note: 'HBsAg-positive patients only' },
+    { code: 'CH-11', iso: 'NONE', status: 'COMPLETED', patient: 'Geeta Sharma', type: 'Outpatient · HD 4h', payer: 'Self-pay', machine: 'Nipro Surdial #11', nurse: 'Sr. Anitha S.', elapsed: '4h 00m', pct: 100, uf: '2.5 / 2.5 L', bp: '118/74', note: 'Post-assessment signed · charges sent' },
+    { code: 'CH-12', iso: 'UNKNOWN', status: 'AVAILABLE', patient: '', type: '', payer: '—', machine: 'FMC-4008S #12 (unknown)', nurse: '—', elapsed: '—', pct: 0, uf: '—', bp: '—', note: 'For walk-ins awaiting serology' },
+    { code: 'ICU-3', iso: 'NONE', status: 'IN_PROGRESS', patient: 'Ramesh Kulkarni', type: 'Inpatient · ICU bedside · CRRT (CVVHDF) day 2', payer: 'Admission bill (IP-24790)', machine: 'Prismaflex #2 (portable)', nurse: 'Sr. Deepa V.', elapsed: 'Circuit 18h', pct: 75, uf: 'Net −1.2 L', bp: '108/64', note: 'Filter change due at 72h or if clotting' }
+  ];
+  const isoChip = (iso) => iso === 'HBV' ? chip('c-iso', 'HBV isolation') : iso === 'UNKNOWN' ? chip('c-unknown', 'Unknown serology only') : '';
+
+  function renderBoard() {
+    const b = S.board;
+    const match = (d) => b.filter === 'ALL' ? true : b.filter === 'ALERTS' ? !!d.alert : b.filter === 'IN_PROGRESS' ? d.status === 'IN_PROGRESS'
+      : b.filter === 'AVAILABLE' ? d.status === 'AVAILABLE' : d.iso !== 'NONE';
+    const count = (fn) => STATIONS.filter(fn).length;
+    const tiles = [['Stations', STATIONS.length], ['In treatment', count((d) => d.status === 'IN_PROGRESS')],
+      ['Waiting to start', count((d) => d.status === 'READY' || d.status === 'PRE_ASSESSMENT')], ['Available', count((d) => d.status === 'AVAILABLE')],
+      ['Disinfecting', count((d) => d.status === 'CLEANING')], ['Active alerts', count((d) => !!d.alert)]];
+    const filters = [['ALL', 'All'], ['ALERTS', 'Alerts'], ['IN_PROGRESS', 'In treatment'], ['AVAILABLE', 'Available'], ['ISOLATION', 'Isolation']];
+    const sel = STATIONS.find((d) => d.code === b.selected) || STATIONS[0];
+    const cards = STATIONS.filter(match).map((d) => {
+      const [label, cls] = STATUS[d.status];
+      const showBar = d.status === 'IN_PROGRESS' || d.status === 'COMPLETED';
+      return `<button type="button" class="card${d.alert ? ' alert' : ''}${d.code === b.selected ? ' sel' : ''}" data-act="board-select" data-arg="${d.code}" aria-label="${esc(d.code + ', ' + label + (d.patient ? ', ' + d.patient : ''))}">
+        <div class="card-top"><span class="code">${d.code}</span>${chip(cls, label)}</div>
+        ${isoChip(d.iso) ? `<div>${isoChip(d.iso)}</div>` : ''}
+        ${d.patient ? `<div class="who"><strong>${esc(d.patient)}</strong><span>${esc(d.type)}</span></div>` : ''}
+        ${showBar ? `<div class="stack"><div class="bar${d.alert ? ' alert' : ''}"><i style="width:${d.pct}%"></i></div>
+          <div class="metrics"><span>${d.elapsed}</span><span>UF ${d.uf}</span><span>BP ${d.bp}</span></div></div>` : ''}
+        <span class="note">${esc(d.note)}</span>
+        ${d.alert ? `<span class="alert-text">${esc(d.alert)}</span>` : ''}
+      </button>`;
+    }).join('') || `<p class="hint">No stations match this filter.</p>`;
+    const [selLabel, selCls] = STATUS[sel.status];
+    return `
+    <header class="head">
+      <div class="head-text"><span class="eyebrow">Unit A · Fri 3 Oct 2026 · Shift 2 (10:00–14:00)</span><h1>Unit board</h1></div>
+      <div class="wrap"><a class="btn" href="#walkin">+ Walk-in patient</a><a class="btn btn-ghost" href="#schedule">Inpatient orders (2)</a></div>
+    </header>
+    <div class="notice n-water" role="note"><strong>Water</strong><span>RO-1 total chlorine 07:05 passed · conductivity passed</span><strong>Due</strong><span>Monthly culture &amp; endotoxin sample in 2 days</span></div>
+    <section class="tiles" aria-label="Capacity">${tiles.map(([l, v]) => `<div class="tile"><span class="label">${l}</span><span class="value">${v}</span></div>`).join('')}</section>
+    <div class="wrap" role="group" aria-label="Filter stations">${filters.map(([id, l]) => `<button type="button" class="pill" data-act="board-filter" data-arg="${id}" aria-pressed="${pressed(b.filter === id)}">${l}</button>`).join('')}</div>
+    <div class="row">
+      <section class="stations" aria-label="Stations">${cards}</section>
+      <aside class="side"><div class="panel" aria-label="Selected station">
+        <div class="card-top"><h2 class="code">${sel.code}</h2>${chip(selCls, selLabel)}</div>
+        ${sel.patient ? `<div class="who"><strong style="font-size:1.05rem">${esc(sel.patient)}</strong><span>${esc(sel.type)}</span></div>` : ''}
+        <dl class="kv">
+          <dt>Machine</dt><dd>${esc(sel.machine)}</dd><dt>Nurse</dt><dd>${esc(sel.nurse)}</dd>
+          <dt>Elapsed</dt><dd class="num">${sel.elapsed}</dd><dt>UF (actual / goal)</dt><dd class="num">${sel.uf}</dd>
+          <dt>Latest BP</dt><dd class="num">${sel.bp}</dd><dt>Billing route</dt><dd>${esc(sel.payer)}</dd>
+        </dl>
+        ${sel.alert ? `<div class="notice n-alert" role="alert">${esc(sel.alert)}</div>` : ''}
+        <p class="hint">${esc(sel.note)}</p>
+        <a class="btn" href="#treatment">Open treatment chart</a>
+      </div></aside>
+    </div>`;
+  }
+
+  /* ---------------- 2. Treatment chart ---------------- */
+  const PRE_SBP = 150;
+  function trtChecks(t) {
+    return [
+      ['Prescription', 'hard', true, 'HD v3 signed by Dr. S. Rao on 22 Sep 2026, valid today'],
+      ['Serology', 'hard', true, 'HBsAg, anti-HCV, HIV negative · collected 15 Sep 2026'],
+      ['Isolation match', 'hard', true, 'Patient NONE · machine FMC #01 NONE'],
+      ['Machine', 'hard', true, 'Available · heat disinfection 09:40 after last use · maintenance due 20 Nov'],
+      ['Water', 'hard', true, 'RO-1 total chlorine 07:05 passed'],
+      ['Dialyzer reuse', 'hard', t.reuseFixed, t.reuseFixed ? 'Reused dialyzer discarded. New dialyzer FX80 batch FX5521 assigned' : 'DZ-0042817-02 volume (TCV) 78% of baseline, minimum is 80%. Must be discarded', !t.reuseFixed],
+      ['Identity', 'hard', true, 'Name + UHID confirmed · dialyzer label matches'],
+      ['Consent', 'hard', true, 'Dialysis consent v2 signed 10 Jan 2026'],
+      ['Financial clearance', 'soft', true, 'PM-JAY pre-auth PMJ-88213 · 4 of 13 treatments used'],
+      ['Supplies', 'soft', true, 'Kit HD-STD-4H-AVF available in dialysis sub-store']
+    ].map(([name, kind, ok, detail, fixable]) => ({ name, kind, ok, detail, fixable }));
+  }
+  function renderTreatment() {
+    const t = S.trt;
+    const checks = trtChecks(t);
+    const failedHard = checks.filter((c) => !c.ok && c.kind === 'hard').length;
+    const canStart = failedHard === 0 && !t.started;
+    const clinical = t.completed ? ['CLINICALLY_COMPLETED', 'c-ok'] : t.started ? ['IN_PROGRESS', 'c-info'] : ['READY', 'c-warn'];
+    const tabs = [['checks', 'Safety checks'], ['monitor', 'Monitoring'], ['events', 'Events'], ['supplies', 'Supplies'], ['complete', 'Post & complete']];
+    let body = '';
+    if (t.tab === 'checks') {
+      body = `<section class="panel" aria-label="Safety checks before start">
+        <div class="panel-head"><h2>Safety checks before start</h2><span class="hint">${checks.filter((c) => c.ok).length} of ${checks.length} passed</span></div>
+        <ul class="list">${checks.map((c) => `<li class="check${c.ok ? '' : ' fail'}">
+          <span class="badge ${c.ok ? 'c-ok' : 'c-alert'}">${c.ok ? 'PASS' : c.kind === 'hard' ? 'BLOCKED' : 'WARN'}</span>
+          <div class="check-body"><strong>${c.name} <small>· ${c.kind}</small></strong><span>${esc(c.detail)}</span></div>
+          ${c.fixable ? `<div class="wrap"><button type="button" class="btn" data-act="trt-fix">Discard &amp; use new dialyzer</button><button type="button" class="btn btn-ghost" data-act="trt-override">Request nephrologist override</button></div>` : ''}
+        </li>`).join('')}</ul>
+        ${t.overrideRequested && !t.reuseFixed ? `<p class="notice n-neutral" role="status">Override request sent to Dr. S. Rao (nephrologist). Only a nephrologist can override a hard check, and the reason is recorded.</p>` : ''}
+        <div class="wrap"><button type="button" class="btn btn-lg" data-act="trt-start" ${canStart ? '' : 'disabled'}>Start treatment</button>
+        <span class="hint">${t.started ? 'Treatment started at ' + t.startedAt + '.' : failedHard ? failedHard + ' hard check blocking start.' : 'All hard checks passed.'}</span></div>
+      </section>`;
+    } else if (t.tab === 'monitor') {
+      const last = t.readings[t.readings.length - 1];
+      let alert = '';
+      if (last && last.sbp < 90) alert = `Low blood pressure: systolic ${last.sbp} is below 90. Reduce UF, consider a saline bolus, inform the nephrologist.`;
+      else if (last && PRE_SBP - last.sbp >= 20) alert = `Blood pressure drop: systolic fell ${PRE_SBP - last.sbp} mmHg from pre-dialysis 150. Check the patient and UF rate.`;
+      const f = t.form;
+      body = `<div class="row">
+        <section class="panel side" aria-label="Prescription">
+          <h2>Prescription v3 (signed)</h2>
+          <dl class="kv"><dt>Duration</dt><dd>240 min</dd><dt>Qb / Qd</dt><dd>300 / 500 ml/min</dd>
+          <dt>Dialyzer</dt><dd>${t.reuseFixed ? 'FX80 new (batch FX5521)' : 'Reused DZ-0042817-02'}</dd>
+          <dt>Dialysate</dt><dd>Na 138 · K 2 · Ca 1.5 · HCO3 35 · 36.5 °C</dd><dt>UF goal</dt><dd>2.8 L (max 13 ml/kg/h)</dd>
+          <dt>Heparin</dt><dd>2000 IU bolus, 1000 IU/h, stop 30 min before end</dd></dl>
+        </section>
+        <section class="panel grow" aria-label="Readings during treatment">
+          <div class="panel-head"><h2>Readings during treatment</h2><span class="hint">Every 30 min · next due ${last ? 'in 30 min' : 'after start'}</span></div>
+          ${!t.started ? `<p class="notice n-neutral">Start the treatment first (Safety checks tab). Device readings then appear here automatically.</p>` : ''}
+          ${alert ? `<div class="notice n-alert" role="alert">${alert}</div>` : ''}
+          <div class="table-box"><table style="min-width:540px"><thead><tr><th>Time</th><th>BP</th><th>HR</th><th>Qb</th><th>Venous P</th><th>UF (L)</th><th>Source</th></tr></thead>
+          <tbody>${t.readings.map((r) => `<tr><td class="num">${r.t}</td><td class="num ${r.sbp < 90 || PRE_SBP - r.sbp >= 20 ? 'low' : ''}">${r.sbp}/${r.dbp}</td><td class="num">${esc(r.hr)}</td><td class="num">${r.qb}</td><td class="num">${r.vp}</td><td class="num">${esc(r.uf)}</td><td>${r.src}</td></tr>`).join('') || `<tr><td colspan="7" class="hint">No readings yet.</td></tr>`}</tbody></table></div>
+          <form class="inline" data-form="reading">
+            <label class="field" for="f-sbp">Systolic<input id="f-sbp" type="number" inputmode="numeric" data-field="sbp" value="${esc(f.sbp)}"></label>
+            <label class="field" for="f-dbp">Diastolic<input id="f-dbp" type="number" inputmode="numeric" data-field="dbp" value="${esc(f.dbp)}"></label>
+            <label class="field" for="f-hr">Heart rate<input id="f-hr" type="number" inputmode="numeric" data-field="hr" value="${esc(f.hr)}"></label>
+            <label class="field" for="f-uf">UF so far (L)<input id="f-uf" type="number" step="0.1" inputmode="decimal" data-field="uf" value="${esc(f.uf)}"></label>
+            <button type="submit" class="btn" ${t.started ? '' : 'disabled'}>Add reading</button>
+          </form>
+          <p class="hint">Try a systolic below 90, or 20 or more below the pre-dialysis 150, to see the alert rule.</p>
+        </section></div>`;
+    } else if (t.tab === 'events') {
+      const types = ['Hypotension', 'Cramps', 'Nausea', 'Access problem', 'Machine alarm', 'Clotting'];
+      body = `<section class="panel" aria-label="Events during treatment"><h2>Events during treatment</h2>
+        <div class="wrap">${types.map((x, i) => `<button type="button" class="btn btn-ghost" data-act="trt-event" data-arg="${i}">+ ${x}</button>`).join('')}</div>
+        ${t.events.length ? `<ul class="list">${t.events.map((e) => `<li class="event"><span class="num">${e.t}</span><strong>${e.type}</strong><span>Severity: ${e.sev} · Action: ${e.action}</span></li>`).join('')}</ul>` : `<p class="hint">No events recorded for this treatment.</p>`}
+      </section>`;
+    } else if (t.tab === 'supplies') {
+      const typeCls = (x) => x === 'PATIENT_BILLABLE' ? 'c-warn' : x === 'PACKAGE_INCLUDED' ? 'c-info' : '';
+      body = `<section class="panel" aria-label="Supplies">
+        <div class="panel-head"><h2>Supplies · kit HD-STD-4H-AVF</h2>
+          <div class="wrap"><button type="button" class="btn" data-act="trt-scan-good">Scan item (demo)</button><button type="button" class="btn btn-ghost" data-act="trt-scan-bad">Scan expired batch (demo)</button></div></div>
+        ${t.scan ? `<p class="notice ${t.scan.ok ? 'n-ok' : 'n-alert'}" role="status">${t.scan.msg}</p>` : ''}
+        <div class="table-box"><table style="min-width:660px"><thead><tr><th>Item</th><th>Batch · expiry</th><th>Qty</th><th>Consumption type</th></tr></thead>
+        <tbody>${t.supplies.map((s) => `<tr><td>${esc(s.name)}</td><td class="mono">${esc(s.batch)}</td>
+          <td><div class="qty"><button type="button" data-act="trt-qty" data-arg="${s.id}|-1" aria-label="Decrease ${esc(s.name)}">−</button><span>${s.qty}</span><button type="button" data-act="trt-qty" data-arg="${s.id}|1" aria-label="Increase ${esc(s.name)}">+</button></div></td>
+          <td>${chip(typeCls(s.type), s.type)}</td></tr>`).join('')}</tbody></table></div>
+        <p class="hint">Dialysis records what the patient consumed. Stores issues stock to the unit, and Billing's charge rules decide what is billed separately.</p>
+      </section>`;
+    } else {
+      const canComplete = t.started && !t.completed && t.post.weight !== '';
+      const extras = t.supplies.filter((s) => s.type === 'PATIENT_BILLABLE' && s.qty > 0);
+      const charges = [['DIAL_HD_4H (PM-JAY package)', 1], [t.reuseFixed ? 'DIAL_DIALYZER_NEW' : 'DIAL_DIALYZER_REPROCESS', 1]].concat(extras.map((s) => ['ITEM: ' + s.name, s.qty]));
+      body = `<section class="panel" aria-label="Post-assessment and completion"><h2>Post-assessment &amp; completion</h2>
+        ${!t.started ? `<p class="hint">Start the treatment first (Safety checks tab).</p>` : ''}
+        ${t.started && !t.completed ? `<form class="inline" data-form="complete">
+          <label class="field" for="f-pw">Post weight (kg)<input id="f-pw" type="number" step="0.1" inputmode="decimal" data-field="post.weight" value="${esc(t.post.weight)}"></label>
+          <label class="field" for="f-pbp">Post BP<input id="f-pbp" type="text" data-field="post.bp" value="${esc(t.post.bp)}" placeholder="e.g. 128/78"></label>
+          <button type="submit" class="btn btn-lg">Sign &amp; complete treatment</button></form>
+          <p class="hint">Enter a post weight to complete.</p>` : ''}
+        ${t.completed ? `<p class="notice n-ok" role="status">Treatment completed${t.post.bp ? ' · post BP ' + esc(t.post.bp) : ''}. Charge events sent to Billing, which prices them against the PM-JAY package.</p>
+          <div class="table-box"><table><thead><tr><th>Charge event</th><th>Qty</th><th>Key (sent once)</th></tr></thead>
+          <tbody>${charges.map(([c, q], i) => `<tr><td>${esc(c)}</td><td class="num">${q}</td><td class="mono hint">TRT-20261003-0005:${i}</td></tr>`).join('')}</tbody></table></div>
+          <a href="#reconciliation">See it in billing &amp; supplies reconciliation →</a>` : ''}
+      </section>`;
+    }
+    return `
+    <a href="#board">← Unit board</a>
+    <header class="patient" aria-label="Patient">
+      <div class="id">
+        <div class="wrap" style="align-items:baseline"><h1 style="font-size:1.5rem">Lakshmi Ramesh</h1><span class="hint">58 F · UHID HMS-0042817 · ABHA linked</span></div>
+        <div class="wrap">${chip('c-danger', 'Allergy: sulfonamides')}${chip('c-ok', 'Serology negative · valid to 15 Dec 2026')}${chip('', 'Outpatient · PM-JAY')}</div>
+      </div>
+      <dl class="facts">
+        <div><dt>Station</dt><dd>CH-05 · FMC #01</dd></div><div><dt>Prescription</dt><dd>HD v3 · Dr. S. Rao</dd></div>
+        <div><dt>Dry weight</dt><dd class="num">59.0 kg</dd></div><div><dt>Arrival weight</dt><dd class="num">61.8 kg (+2.8)</dd></div>
+        <div><dt>Access</dt><dd>L radiocephalic AVF</dd></div><div><dt>Pre BP</dt><dd class="num">150/90</dd></div>
+      </dl>
+    </header>
+    <section class="status-strip" aria-label="Treatment status">
+      ${chip(clinical[1], 'Clinical: ' + clinical[0])}${chip(t.completed ? 'c-info' : '', 'Billing: ' + (t.completed ? 'CHARGES_SENT' : 'PENDING'))}${chip(t.completed ? 'c-info' : '', 'Supplies: ' + (t.completed ? 'RECORDED' : 'PENDING'))}
+    </section>
+    <div class="tabs" role="group" aria-label="Treatment steps">${tabs.map(([id, l]) => `<button type="button" class="tab" data-act="trt-tab" data-arg="${id}" aria-pressed="${pressed(t.tab === id)}">${l}</button>`).join('')}</div>
+    ${body}`;
+  }
+
+  /* ---------------- 3. Walk-in ---------------- */
+  const PAYERS = {
+    SELF: { label: 'Self-pay', lines: [['HD session, 4h', 'SEPARATE', '₹[HD tariff]'], ['Dialyzer, new', 'SEPARATE', '₹[dialyzer tariff]'], ['Standard kit', 'INCLUDED in session', '—']], text: 'Deposit required before start', action: 'Collect deposit ₹[deposit]', done: 'Deposit collected · receipt R-77120' },
+    PMJAY: { label: 'PM-JAY', lines: [['HD package (scheme rate)', 'PACKAGE', 'Scheme rate'], ['Dialyzer, standard kit', 'INCLUDED', '—'], ['Extra items outside package', 'SEPARATE', 'As used']], text: 'Beneficiary and pre-auth needed', action: 'Verify beneficiary & pre-auth', done: 'Pre-auth PMJ-90114 · 13 treatments approved' },
+    PMNDP: { label: 'PMNDP (BPL)', lines: [['HD session', 'PROGRAMME', '₹0 to patient'], ['Dialyzer, standard kit', 'INCLUDED', '—']], text: 'BPL eligibility needed', action: 'Verify BPL eligibility', done: 'Eligible · ration card verified' },
+    TPA: { label: 'TPA / insurance', lines: [['HD session', 'PER CONTRACT', 'Contract rate'], ['Dialyzer, new', 'PER CONTRACT', 'Contract rate'], ['Co-pay', 'PATIENT', '₹[co-pay]']], text: 'Pre-authorisation needed', action: 'Request pre-auth', done: 'Pre-auth approved · STAR-55102' }
+  };
+  const CHAIRS = [
+    ['CH-06', 'Available now · FMC #06', 'NONE', 'Shift 2 · kit in stock · nurse ratio OK'],
+    ['CH-11', 'Free from 14:00 (shift 3) · Nipro #11', 'NONE', 'After disinfection · kit in stock'],
+    ['CH-12', 'Available now · FMC #12', 'UNKNOWN', 'Unknown-serology machine'],
+    ['CH-10', 'Available now · FMC #10', 'HBV', 'HBV-dedicated machine']
+  ];
+  function renderWalkIn() {
+    const w = S.walk;
+    const known = w.serology === 'KNOWN';
+    const cls = known ? 'NONE' : 'UNKNOWN';
+    const p = PAYERS[w.payer];
+    const emergency = w.priority === 'EMERGENCY';
+    const canSend = w.cleared || emergency;
+    const mark = (ok) => `<span class="mark ${ok ? 'c-ok' : 'c-alert'}" aria-hidden="true">${ok ? '✓' : '!'}</span>`;
+    const summary = [[true, 'Existing patient record used (no duplicate)'], [true, 'Triage recorded · priority ' + w.priority.toLowerCase()],
+      [known, known ? 'Serology valid · isolation NONE' : 'Serology unknown · unknown-status machine only, sample sent to lab'],
+      [true, 'Chair ' + w.chair + ' selected'], [canSend, w.cleared ? p.done : emergency ? 'Clearance pending (emergency: warning only)' : 'Financial clearance pending']];
+    return `
+    <header class="head"><div class="head-text"><span class="eyebrow">Walk-in · arrived 10:20</span><h1>Walk-in triage &amp; clearance</h1></div></header>
+    <div class="row"><div class="grow">
+      <section class="panel" aria-label="Patient"><h2>Find patient</h2>
+        <label class="field" for="w-search" style="width:100%">Search by name, phone, UHID or ABHA<input id="w-search" class="search" type="search" value="98450 •••• 21" readonly style="width:100%"></label>
+        <div class="found"><strong>Kavya Nair</strong><span>34 F</span><span>UHID HMS-0051930 (existing record)</span><span>ABHA linked</span><span>Home centre: Kochi Renal Care (visiting)</span></div>
+        <p class="hint">No duplicate record is created. New patients get quick registration without leaving this screen.</p>
+      </section>
+      <section class="panel" aria-label="Triage"><h2>Triage</h2>
+        <dl class="facts"><div><dt>BP</dt><dd class="num">146/88</dd></div><div><dt>Pulse · SpO2</dt><dd class="num">92 · 97%</dd></div><div><dt>Weight</dt><dd class="num">57.4 kg</dd></div>
+        <div><dt>Last dialysis</dt><dd>Tue 30 Sep (Kochi)</dd></div><div><dt>Access</dt><dd>R brachiocephalic AVF</dd></div><div><dt>Reason</dt><dd>Travelling; maintenance HD</dd></div></dl>
+        <fieldset><legend>Priority</legend><div class="wrap">${[['ROUTINE', 'Routine'], ['URGENT', 'Urgent'], ['EMERGENCY', 'Emergency (K+ / fluid overload)']].map(([id, l]) => `<button type="button" class="pill" data-act="walk-priority" data-arg="${id}" aria-pressed="${pressed(w.priority === id)}">${l}</button>`).join('')}</div>
+        ${emergency ? `<p class="notice n-alert" role="status">Emergency: the coordinator may bump a planned patient, who is offered a make-up slot. Financial clearance becomes a warning only.</p>` : ''}</fieldset>
+        <fieldset><legend>Serology</legend><div class="wrap">${[['KNOWN', 'Report: all negative (12 Aug 2026)'], ['UNKNOWN', 'No report / unknown']].map(([id, l]) => `<button type="button" class="pill" data-act="walk-serology" data-arg="${id}" aria-pressed="${pressed(w.serology === id)}">${l}</button>`).join('')}</div></fieldset>
+      </section>
+      <section class="panel" aria-label="Chair suggestion"><div class="panel-head"><h2>Suggested chair</h2><span class="hint">Patient isolation class: ${cls}</span></div>
+        <ul class="list">${CHAIRS.map(([code, title, mc, reason]) => {
+          const blocked = mc !== cls; const on = !blocked && w.chair === code;
+          return `<li><button type="button" class="chair" data-act="walk-chair" data-arg="${code}" aria-pressed="${pressed(on)}" ${blocked ? 'disabled' : ''}>
+            <span class="code">${code}</span><span class="chair-body"><strong>${title}</strong><span>${blocked ? 'Not allowed: machine class ' + mc + ', patient class ' + cls : reason}</span></span>
+            ${blocked ? chip('', 'Blocked') : on ? chip('c-accent', 'Selected') : chip('c-ok', 'Suitable')}</button></li>`;
+        }).join('')}</ul>
+      </section>
+      <section class="panel" aria-label="Financial clearance"><h2>Financial clearance</h2>
+        <div class="wrap" role="group" aria-label="Payer">${Object.keys(PAYERS).map((id) => `<button type="button" class="pill" data-act="walk-payer" data-arg="${id}" aria-pressed="${pressed(w.payer === id)}">${PAYERS[id].label}</button>`).join('')}</div>
+        <div class="table-box"><table style="min-width:480px"><caption class="hint" style="text-align:left;padding-bottom:6px">Estimate from Billing (prices come from the tariff and payer contract)</caption>
+        <thead><tr><th>Line</th><th>Rule</th><th>Amount</th></tr></thead><tbody>${p.lines.map(([a, b, c]) => `<tr><td>${a}</td><td>${b}</td><td class="mono">${c}</td></tr>`).join('')}</tbody></table></div>
+        <div class="wrap"><strong>${w.cleared ? p.done : p.text}</strong>${w.cleared ? '' : `<button type="button" class="btn" data-act="walk-clear">${p.action}</button>`}</div>
+      </section>
+    </div>
+    <aside class="side"><div class="panel" aria-label="Summary"><h2>Ready to proceed?</h2>
+      <ul class="list summary">${summary.map(([ok, txt]) => `<li>${mark(ok)}<span>${esc(txt)}</span></li>`).join('')}</ul>
+      <button type="button" class="btn btn-lg" data-act="walk-send" ${canSend ? '' : 'disabled'}>Send to nephrologist for prescription</button>
+      ${w.sent ? `<p class="notice n-ok" role="status">Sent to Dr. S. Rao. The referral prescription from Kochi Renal Care is attached for approval. Chair ${w.chair} is held for 30 min.</p><a href="#board">Back to unit board →</a>` : ''}
+    </div></aside></div>`;
+  }
+
+  /* ---------------- 4. Schedule ---------------- */
+  function renderSchedule() {
+    const sc = S.sched;
+    const c = (name, sub, k) => ({ name, sub, k });
+    const free = () => c('Free', '', 'free');
+    const grid = [
+      ['CH-01', 'NONE', [c('Usha Rao', 'Completed', 'done'), c('Anil Mehta', 'In treatment', 'live'), c('Sanjay Gupta', 'MWF · package', 'sched'), free()]],
+      ['CH-02', 'NONE', [c('Ravi Teja', 'Completed', 'done'), c('Fatima Begum', 'In treatment', 'live'), c('Nisha Paul', 'MWF · PM-JAY', 'sched'), c('Arjun Das', 'MWF · self-pay', 'sched')]],
+      ['CH-03', 'NONE', [c('Prakash Jha', 'No-show', 'noshow'), c('Suresh Iyer', 'Inpatient · Ward 5B', 'live'), c('Mary Joseph', 'MWF · TPA', 'sched'), free()]],
+      ['CH-04', 'NONE', [c('Imran Khan', 'Completed', 'done'), c('Kavya Nair', 'Walk-in · ready', 'live'), c('Hari Prasad', 'MWF · PMNDP', 'sched'), free()]],
+      ['CH-05', 'NONE', [c('Sunita Bose', 'Completed', 'done'), c('Lakshmi Ramesh', 'Pre-assessment', 'live'), c('Kiran Shetty', 'MWF · package', 'sched'), c('Asha Menon', 'MWF · self-pay', 'sched')]],
+      ['CH-06', 'NONE', [c('Babu Raj', 'Completed', 'done'), free(), sc.booked.o1 ? c('Anjali Desai', 'Inpatient · urgent', 'new') : free(), free()]],
+      ['CH-07', 'NONE', [c('Vinod Kumar', 'Completed', 'done'), c('—', 'Disinfecting', 'free'), c('Pooja Iyer', 'MWF · PM-JAY', 'sched'), free()]],
+      ['CH-08', 'NONE', [c('Ganesh N.', 'Completed', 'done'), c('Mohammed Ali', 'In treatment', 'live'), c('Rekha S.', 'MWF · PMNDP', 'sched'), free()]],
+      ['CH-09', 'HBV', [c('Thomas K.', 'Completed', 'done'), c('Rajesh Kumar', 'In treatment', 'live'), free(), free()]],
+      ['CH-10', 'HBV', [free(), free(), c('Selvi M.', 'MWF · TPA', 'sched'), free()]],
+      ['CH-11', 'NONE', [c('Farhan A.', 'Completed', 'done'), c('Geeta Sharma', 'Completed', 'done'), c('Deepak Jain', 'MWF · self-pay', 'sched'), free()]],
+      ['CH-12', 'UNKNOWN', [free(), free(), free(), free()]],
+      ['ICU bedside', 'NONE', [c('Ramesh Kulkarni', 'CRRT day 2 (continuous)', 'live'), c('Ramesh Kulkarni', 'CRRT (continuous)', 'live'), sc.booked.o2 ? c('Vikram Singh', 'SLED · ICU-5 · portable #3', 'new') : c('Ramesh Kulkarni', 'CRRT (continuous)', 'live'), c('Ramesh Kulkarni', 'CRRT (continuous)', 'live')]]
+    ];
+    const isoTxt = (i) => i === 'HBV' ? chip('c-iso', 'HBV isolation') : i === 'UNKNOWN' ? chip('c-unknown', 'Unknown serology') : '<span class="hint" style="font-size:0.75rem">Standard</span>';
+    const shifts = ['06:00–10:00', '10:00–14:00', '14:00–18:00', '18:00–22:00'];
+    const capacity = shifts.map((s, i) => [s, grid.slice(0, 12).filter((g) => g[2][i].name !== 'Free' && g[2][i].name !== '—').length]);
+    const orders = [
+      ['o1', 'Anjali Desai', 'Urgent', 'Ward 3A · AKI · HD 3h · K+ 6.1 mmol/L', 'Ordered 09:52 by Dr. M. Khan (Medicine)', 'CH-06 · 14:00 today'],
+      ['o2', 'Vikram Singh', 'Routine', 'ICU-5 · SLED 8h at bedside · on ventilator', 'Ordered 08:30 by Dr. R. Nair (ICU)', 'ICU-5 bedside · 14:00 · portable #3 + RO-P2']
+    ];
+    return `
+    <header class="head"><div class="head-text"><span class="eyebrow">Unit A · 12 stations + ICU bedside</span><h1>Schedule · Fri 3 Oct 2026</h1></div>
+      <div class="legend">${chip('c-ok', 'Completed')}${chip('c-info', 'In treatment')}${chip('c-unknown', 'Scheduled')}${chip('c-alert', 'No-show')}${chip('c-iso', 'Isolation')}</div></header>
+    <div class="row">
+      <section class="panel grow" aria-label="Station by shift">
+        <div class="table-box"><table class="grid"><thead><tr><th scope="col">Station</th>${shifts.map((s) => `<th scope="col">${s}</th>`).join('')}</tr></thead>
+        <tbody>${grid.map(([code, iso, cells]) => `<tr><th scope="row" style="vertical-align:top"><div class="stack" style="gap:4px"><span class="code">${code}</span>${isoTxt(iso)}</div></th>
+          ${cells.map((x) => `<td class="k-${x.k}"><strong>${esc(x.name)}</strong><span>${esc(x.sub)}</span></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        <div class="tiles">${capacity.map(([s, n]) => `<div class="tile"><span class="label">${s}</span><span style="font-weight:600">${n} of 12 chairs booked</span></div>`).join('')}</div>
+      </section>
+      <aside class="side">
+        <section class="panel" aria-label="Inpatient dialysis orders"><h2>Inpatient orders</h2>
+          ${orders.map(([id, name, prio, detail, by, slot]) => {
+            const done = !!sc.booked[id];
+            return `<div class="order${done ? ' done' : ''}"><div class="card-top"><strong>${name}</strong>${chip(prio === 'Urgent' ? 'c-alert' : '', prio)}</div>
+              <span class="hint" style="color:var(--fg)">${detail}</span><span class="hint">${by}</span>
+              ${done ? `<span class="ok-text" role="status">Booked: ${slot} · ward notified · charges go to the admission bill</span>` : `<button type="button" class="btn" data-act="sched-book" data-arg="${id}">Book ${slot}</button>`}</div>`;
+          }).join('')}
+        </section>
+        <section class="panel" aria-label="Missed treatments"><h2>Missed &amp; make-up</h2>
+          <div class="stack"><strong>Prakash Jha · no-show 06:00 today</strong><span class="hint">2nd missed treatment this month · nephrologist notified</span>
+          <button type="button" class="btn btn-ghost" data-act="sched-makeup" style="align-self:flex-start" ${sc.makeup ? 'disabled' : ''}>${sc.makeup ? 'Make-up offered: Sat 06:00, CH-06 (SMS sent)' : 'Offer make-up slot'}</button></div>
+        </section>
+        <section class="panel" aria-label="Recurring schedules"><h2>Recurring schedules</h2>
+          <span>48 active patterns · appointments generated 4 weeks ahead</span><span class="hint">Next holiday: Diwali, Tue 20 Oct · 14 appointments to move</span>
+        </section>
+      </aside>
+    </div>`;
+  }
+
+  /* ---------------- 5. Reconciliation ---------------- */
+  function renderRecon() {
+    const r = S.recon;
+    const issues = [
+      ['a', 'TRT-20261002-0011 · Geeta Sharma · charge rejected', 'Billing rejected ITEM: saline 500 ml (extra). No tariff is mapped for this payer. The treatment is clinically complete.', 'Send to Billing tariff queue', 'Sent · Billing reposted with tariff fix'],
+      ['b', 'TRT-20261002-0007 · Mary Joseph · supplies not recorded', 'Completed and charged, but no kit consumption recorded. The sub-store shows one HD kit issued without a patient.', 'Ask nurse to record supplies', 'Recorded by Sr. Anitha S. · kit linked']
+    ];
+    const posted = 41 + (r.fixed.a ? 1 : 0), kits = 41 + (r.fixed.b ? 1 : 0);
+    const tiles = [['Treatments completed', 42, '38 outpatient · 4 inpatient', false], ['Charge events sent', 42, 'All sent', false],
+      ['Charges posted', posted, posted === 42 ? 'Matches' : (42 - posted) + ' rejected', posted !== 42], ['Kits consumed', kits, kits === 42 ? 'Matches' : (42 - kits) + ' not recorded', kits !== 42]];
+    const items = [
+      ['Dialyzer FX80 (new)', 46, 0, 60, 64, 20, 24, '08/2028'], ['AV blood tubing set', 210, 0, 120, 158, 40, 50, '03/2028'],
+      ['AV fistula needle 16G', 180, 200, 200, 280, 60, 100, '11/2027'], ['Normal saline 1000 ml', 240, 0, 150, 170, 50, 20, '11/2026'],
+      ['Heparin 5000 IU/ml vial', 140, 0, 80, 150, 30, 25, '01/2027'], ['Bicarbonate cartridge', 90, 100, 120, 158, 40, 50, '09/2027']
+    ].map(([name, onHand, onOrder, reorder, demand, safety, pack, expiry]) => {
+      const need = demand + safety - onHand - onOrder;
+      return { name, onHand, onOrder, reorder, demand, expiry, suggest: need > 0 ? Math.ceil(need / pack) * pack : 0, low: onHand < reorder, soon: expiry === '11/2026' };
+    });
+    const lines = items.filter((i) => i.suggest > 0).length;
+    const allDone = r.fixed.a && r.fixed.b;
+    return `
+    <header class="head"><div class="head-text"><span class="eyebrow">Unit A · Thu 2 Oct 2026 (yesterday)</span><h1>Billing &amp; supplies reconciliation</h1></div></header>
+    <section class="tiles" aria-label="Daily reconciliation">${tiles.map(([l, v, n, bad]) => `<div class="tile${bad ? ' bad' : ''}"><span class="label">${l}</span><span class="value">${v}</span><span class="hint">${n}</span></div>`).join('')}</section>
+    <section class="panel" aria-label="Mismatches"><h2>Mismatches to resolve</h2>
+      ${allDone ? `<p class="notice n-ok" role="status">All treatments reconciled: completed = charges posted = kits consumed.</p>` : ''}
+      <ul class="list">${issues.map(([id, title, detail, action, doneText]) => {
+        const done = !!r.fixed[id];
+        return `<li class="issue${done ? ' done' : ''}"><div class="issue-body"><strong>${title}</strong><span>${detail}</span></div>
+          ${done ? `<span class="ok-text">${doneText}</span>` : `<button type="button" class="btn" data-act="recon-fix" data-arg="${id}">${action}</button>`}</li>`;
+      }).join('')}</ul>
+    </section>
+    <div class="row">
+      <section class="panel grow" aria-label="Sub-store replenishment">
+        <div class="panel-head"><h2>Dialysis sub-store · next 7 days</h2><span class="hint">Demand = scheduled treatments × kit quantity · 158 treatments booked</span></div>
+        <div class="table-box"><table style="min-width:720px"><thead><tr><th>Item</th><th>On hand</th><th>On order</th><th>Reorder point</th><th>7-day demand</th><th>Suggested indent</th><th>Nearest expiry</th></tr></thead>
+        <tbody>${items.map((i) => `<tr><td>${i.name}</td><td class="num ${i.low ? 'low' : ''}">${i.onHand}</td><td class="num">${i.onOrder}</td><td class="num">${i.reorder}</td><td class="num">${i.demand}</td><td class="num" style="font-weight:700">${i.suggest || '—'}</td><td class="num ${i.soon ? 'low' : ''}">${i.expiry}</td></tr>`).join('')}</tbody></table></div>
+        <div class="wrap"><button type="button" class="btn btn-lg" data-act="recon-approve" ${r.approved ? 'disabled' : ''}>${r.approved ? 'Indent approved' : 'Approve indent (' + lines + ' items)'}</button>
+        <span class="hint">${r.approved ? 'IND-2210 sent to central store. Items below the central reorder point raise a purchase request to Procurement.' : 'Saline 1000 ml batch expires 11/2026: issue earliest expiry first.'}</span></div>
+      </section>
+      <aside class="side">
+        <section class="panel" aria-label="Month to date variance"><h2>Variance, month to date</h2><span class="hint">Issued − consumed − returned − wasted, against counted stock</span>
+          <div>${[['Dialyzer FX80', '0.0%', false], ['AV blood tubing', '0.4%', false], ['Fistula needles', '2.6%', true], ['Saline 1000 ml', '1.1%', false]].map(([n, v, bad]) => `<div class="line-item"><span>${n}</span><span class="num ${bad ? 'low' : ''}">${v}</span></div>`).join('')}</div>
+          <span class="hint">Flagged above 2%</span></section>
+        <section class="panel" aria-label="Package balances"><h2>Packages &amp; approvals ending soon</h2>
+          <div>${[['Anil Mehta · prepaid package', '7 of 12 treatments left · expires 31 Oct'], ['Fatima Begum · PM-JAY', 'Pre-auth 9 of 13 used · renew within 2 weeks'], ['Rajesh Kumar · TPA', 'Authorisation expires 10 Oct · 3 treatments left']].map(([n, t]) => `<div class="line-item" style="flex-direction:column;gap:2px"><strong>${n}</strong><span class="hint">${t}</span></div>`).join('')}</div></section>
+      </aside>
+    </div>`;
+  }
+
+  /* ---------------- Router & actions ---------------- */
+  const SCREENS = { board: renderBoard, treatment: renderTreatment, walkin: renderWalkIn, schedule: renderSchedule, reconciliation: renderRecon };
+  const NAMES = { board: 'Unit board', treatment: 'Treatment chart', walkin: 'Walk-in triage', schedule: 'Schedule', reconciliation: 'Billing & supplies' };
+  const route = () => { const h = location.hash.slice(1); return SCREENS[h] ? h : 'board'; };
+  function render() {
+    const r = route();
+    view.innerHTML = SCREENS[r]();
+    view.setAttribute('aria-label', NAMES[r]);
+    document.querySelectorAll('[data-nav]').forEach((a) => { if (a.dataset.nav === r) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  }
+  const EVENTS = [['Hypotension', 'Moderate', 'UF paused, 200 ml saline'], ['Cramps', 'Mild', 'UF reduced, stretching'], ['Nausea', 'Mild', 'Ondansetron 4 mg IV'],
+    ['Access problem', 'Moderate', 'Needle repositioned'], ['Machine alarm', 'Mild', 'Venous pressure alarm cleared'], ['Clotting', 'Moderate', 'Circuit flushed']];
+  const ACT = {
+    reset: () => { S = initial(); },
+    'board-filter': (v) => { S.board.filter = v; },
+    'board-select': (v) => { S.board.selected = v; },
+    'trt-tab': (v) => { S.trt.tab = v; },
+    'trt-fix': () => { const t = S.trt; t.reuseFixed = true; t.overrideRequested = false; t.supplies = t.supplies.map((x) => x.id === 'dz' ? { ...x, name: 'Dialyzer FX80 (new)', batch: 'FX5521 · 08/2028' } : x); },
+    'trt-override': () => { S.trt.overrideRequested = true; },
+    'trt-start': () => { const t = S.trt; const time = now(); t.started = true; t.startedAt = time; t.tab = 'monitor'; t.readings = [{ t: time, sbp: 148, dbp: 88, hr: 82, qb: 300, vp: 140, uf: '0.0', src: 'Device' }]; },
+    'trt-event': (i) => { const [type, sev, action] = EVENTS[Number(i)]; S.trt.events.push({ t: now(), type, sev, action }); },
+    'trt-qty': (v) => { const [id, d] = v.split('|'); S.trt.supplies = S.trt.supplies.map((x) => x.id === id ? { ...x, qty: Math.max(0, x.qty + Number(d)) } : x); },
+    'trt-scan-good': () => { const t = S.trt; t.supplies.push({ id: 'x' + t.supplies.length, name: 'Normal saline 0.9% 500 ml (extra)', batch: 'NS7004 · 02/2028', qty: 1, type: 'PATIENT_BILLABLE' }); t.scan = { ok: true, msg: 'Scanned GS1 code: saline 500 ml, batch NS7004, expiry 02/2028. Added as PATIENT_BILLABLE.' }; },
+    'trt-scan-bad': () => { S.trt.scan = { ok: false, msg: 'Blocked: AV fistula needle batch FN0901 expired 08/2026. Use batch FN1188 (earliest valid expiry).' }; },
+    'walk-priority': (v) => { S.walk.priority = v; },
+    'walk-serology': (v) => { S.walk.serology = v; S.walk.chair = v === 'KNOWN' ? 'CH-06' : 'CH-12'; S.walk.sent = false; },
+    'walk-chair': (v) => { S.walk.chair = v; S.walk.sent = false; },
+    'walk-payer': (v) => { S.walk.payer = v; S.walk.cleared = false; S.walk.sent = false; },
+    'walk-clear': () => { S.walk.cleared = true; },
+    'walk-send': () => { S.walk.sent = true; },
+    'sched-book': (v) => { S.sched.booked[v] = true; },
+    'sched-makeup': () => { S.sched.makeup = true; },
+    'recon-fix': (v) => { S.recon.fixed[v] = true; },
+    'recon-approve': () => { S.recon.approved = true; }
+  };
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-act]');
+    if (!el || el.disabled) return;
+    const fn = ACT[el.dataset.act];
+    if (!fn) return;
+    const keepFocus = el.dataset.act + '|' + (el.dataset.arg || '');
+    fn(el.dataset.arg);
+    render();
+    const again = [...document.querySelectorAll('[data-act]')].find((x) => x.dataset.act + '|' + (x.dataset.arg || '') === keepFocus);
+    if (again && !again.disabled) again.focus({ preventScroll: true });
+  });
+  document.addEventListener('input', (e) => {
+    const f = e.target.dataset && e.target.dataset.field;
+    if (!f) return;
+    if (f.startsWith('post.')) S.trt.post[f.slice(5)] = e.target.value; else S.trt.form[f] = e.target.value;
+  });
+  document.addEventListener('submit', (e) => {
+    const form = e.target.dataset && e.target.dataset.form;
+    if (!form) return;
+    e.preventDefault();
+    const t = S.trt;
+    if (form === 'reading') {
+      if (!t.started || !t.form.sbp || !t.form.dbp) return;
+      t.readings.push({ t: now(), sbp: Number(t.form.sbp), dbp: Number(t.form.dbp), hr: t.form.hr || '—', qb: 300, vp: 150, uf: t.form.uf || '—', src: 'Manual' });
+      t.form = { sbp: '', dbp: '', hr: '', uf: '' };
+    } else if (form === 'complete') {
+      if (!t.started || t.post.weight === '') return;
+      t.completed = true;
+    }
+    render();
+  });
+  window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); view.focus({ preventScroll: true }); });
+  render();
+})();
+</script>
